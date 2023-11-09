@@ -1,24 +1,24 @@
 // Dependencies
-import chalk from 'chalk';
-import dotenv from 'dotenv';
-import Taapi from 'taapi';
-import { exec } from 'child_process';
+import chalk from "chalk";
+import dotenv from "dotenv";
+import Taapi from "taapi";
+import { exec } from "child_process";
 
 dotenv.config();
 
 function logger(level, message) {
   const timestamp = new Date().toISOString();
-  let color = chalk.hex('#15B5B0');
-  if (level == 'error') {
+  let color = chalk.hex("#15B5B0");
+  if (level == "error") {
     color = chalk.red;
-  } else if (level == 'warn') {
-    color = chalk.hex('#FFA500');
-  } else if (level == 'finance') {
-    color = chalk.hex('#3EAB76');
-  } else if (level == 'finance-profit') {
-    color = chalk.hex('#FF00DD');
+  } else if (level == "warn") {
+    color = chalk.hex("#FFA500");
+  } else if (level == "finance") {
+    color = chalk.hex("#3EAB76");
+  } else if (level == "finance-profit") {
+    color = chalk.hex("#FF00DD");
   }
-  console.log(color(`${timestamp} - ${message}`)); 
+  console.log(color(`${timestamp} - ${message}`));
 }
 
 function sendTelegramMessage(message) {
@@ -37,12 +37,34 @@ function sendTelegramMessage(message) {
 
 // Dynamically import the ES Module '@ln-markets/api'
 async function loadModules() {
-  const { createRestClient, createWebsocketClient } = await import('@ln-markets/api');
+  // Function to validate the presence of required environment variables
+  function validateEnvVariables() {
+    const requiredEnv = [
+      "LNM_API_KEY",
+      "LNM_API_SECRET",
+      "LNM_PASSPHRASE",
+      "TAAPI_API_KEY",
+    ];
+    const missingEnv = requiredEnv.filter((envVar) => !process.env[envVar]);
+
+    if (missingEnv.length > 0) {
+      throw new Error(
+        `Missing required environment variables: ${missingEnv.join(", ")}`
+      );
+    }
+  }
+
+  // Validate environment variables before creating Taapi client
+  validateEnvVariables();
+
+  const { createRestClient, createWebsocketClient } = await import(
+    "@ln-markets/api"
+  );
   // Configuration
   const apiConfig = {
     key: process.env.LNM_API_KEY,
     secret: process.env.LNM_API_SECRET,
-    passphrase: process.env.LNM_PASSPHRASE
+    passphrase: process.env.LNM_PASSPHRASE,
   };
   const taapiClient = new Taapi.default(process.env.TAAPI_API_KEY);
 
@@ -72,7 +94,7 @@ async function loadModules() {
       let sum = 0;
       for (let j = 0; j < period; j++) {
         if (isNaN(data[i - j])) {
-          logger('error', `Non-numeric data encountered: ${data[i - j]}`);
+          logger("error", `Non-numeric data encountered: ${data[i - j]}`);
           return NaN; // Or handle this case as appropriate
         }
         sum += data[i - j];
@@ -81,8 +103,10 @@ async function loadModules() {
       movingAverages.push(average);
     }
     // logger('debug', `Calculated moving averages: ${movingAverages}`);
-    return movingAverages.length > 0 ? movingAverages[movingAverages.length - 1] : NaN;
-  }  
+    return movingAverages.length > 0
+      ? movingAverages[movingAverages.length - 1]
+      : NaN;
+  }
 
   function addRsiSample(sample) {
     if (rsiData.length > 14) {
@@ -96,11 +120,15 @@ async function loadModules() {
   async function fetchRSI(timeframe) {
     const currentTime = Date.now();
     if (currentTime - lastCalledTime < 15000) {
-      return Promise.reject('RSI call is on cooldown');
+      return Promise.reject("RSI call is on cooldown");
     }
     try {
       // Call the RSI function and update the last called time
-      const rsiResponse = await taapiClient.getIndicator('rsi', 'BTC/USDT', timeframe);
+      const rsiResponse = await taapiClient.getIndicator(
+        "rsi",
+        "BTC/USDT",
+        timeframe
+      );
       lastCalledTime = currentTime;
       return rsiResponse;
     } catch (error) {
@@ -112,11 +140,15 @@ async function loadModules() {
   async function fetchBbands(timeframe) {
     const currentTime = Date.now();
     if (currentTime - lastCalledTime < 15000) {
-      return Promise.reject('RSI call is on cooldown');
+      return Promise.reject("RSI call is on cooldown");
     }
     try {
       // Call the RSI function and update the last called time
-      const bbandsResponse = await taapiClient.getIndicator('bbands', 'BTC/USDT', timeframe);
+      const bbandsResponse = await taapiClient.getIndicator(
+        "bbands",
+        "BTC/USDT",
+        timeframe
+      );
       lastCalledTime = currentTime;
       return bbandsResponse;
     } catch (error) {
@@ -128,10 +160,14 @@ async function loadModules() {
   async function fetchUltosc(timeframe) {
     const currentTime = Date.now();
     if (currentTime - lastCalledTime < 15000) {
-      return Promise.reject('Ultosc call is on cooldown');
+      return Promise.reject("Ultosc call is on cooldown");
     }
     try {
-      const ultoscResponse = await taapiClient.getIndicator('ultosc', 'BTC/USDT', timeframe);
+      const ultoscResponse = await taapiClient.getIndicator(
+        "ultosc",
+        "BTC/USDT",
+        timeframe
+      );
       lastCalledTime = currentTime;
       return ultoscResponse;
     } catch (error) {
@@ -143,10 +179,14 @@ async function loadModules() {
   async function fetchStddev(timeframe) {
     const currentTime = Date.now();
     if (currentTime - lastCalledTime < 15000) {
-      return Promise.reject('Stddev call is on cooldown');
+      return Promise.reject("Stddev call is on cooldown");
     }
     try {
-      const stddevResponse = await taapiClient.getIndicator('stddev', 'BTC/USDT', timeframe);
+      const stddevResponse = await taapiClient.getIndicator(
+        "stddev",
+        "BTC/USDT",
+        timeframe
+      );
       lastCalledTime = currentTime;
       return stddevResponse;
     } catch (error) {
@@ -158,10 +198,14 @@ async function loadModules() {
   async function fetchMacd(timeframe) {
     const currentTime = Date.now();
     if (currentTime - lastCalledTime < 15000) {
-      return Promise.reject('Macd call is on cooldown');
+      return Promise.reject("Macd call is on cooldown");
     }
     try {
-      const macdResponse = await taapiClient.getIndicator('macd', 'BTC/USDT', timeframe);
+      const macdResponse = await taapiClient.getIndicator(
+        "macd",
+        "BTC/USDT",
+        timeframe
+      );
       lastCalledTime = currentTime;
       return macdResponse;
     } catch (error) {
@@ -172,17 +216,20 @@ async function loadModules() {
 
   function shouldCallTradeLogic() {
     const now = Date.now();
-    return (now - lastTradeLogicCall) >= tradeLogicCooldown;
+    return now - lastTradeLogicCall >= tradeLogicCooldown;
   }
 
   function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // Trading logic
   async function tradeLogic() {
     if (!canMakeTrade()) {
-      logger('error', 'Trade not possible: Cooling down period has not elapsed.');
+      logger(
+        "error",
+        "Trade not possible: Cooling down period has not elapsed."
+      );
       return;
     }
     if (lastPrice === null || indexPrice === null) {
@@ -193,7 +240,7 @@ async function loadModules() {
     let totalBuyExposure = 0;
     try {
       let runningPositions = await restClient.futuresGetTrades({
-        "type": "running",
+        type: "running",
       });
       // Calculate total exposure for both sides
       let profitableSells = 0;
@@ -201,33 +248,53 @@ async function loadModules() {
       let sellPl = 0;
       let buyPl = 0;
       let changedPos = false;
-      runningPositions.forEach(position => {
-        if (position.side === 's') {
+      runningPositions.forEach((position) => {
+        if (position.side === "s") {
           totalSellExposure += position.quantity;
           if (position.pl > 10) {
-            logger('finance-profit', `CLOSING SHORT POSITION ${JSON.stringify(position)}`);
+            logger(
+              "finance-profit",
+              `CLOSING SHORT POSITION ${JSON.stringify(position)}`
+            );
             restClient.futuresCloseTrade(position.id);
             profitableSells += 2;
-            sendTelegramMessage(`Closed profitable short on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`);
+            sendTelegramMessage(
+              `Closed profitable short on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
+            );
             changedPos = true;
           } else if (position.pl < -20) {
-            logger('error', `CLOSING SHORT POSITION AT LOSS ${JSON.stringify(position)}`);
+            logger(
+              "error",
+              `CLOSING SHORT POSITION AT LOSS ${JSON.stringify(position)}`
+            );
             restClient.futuresCloseTrade(position.id);
-            sendTelegramMessage(`Closed short at a loss on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`);
+            sendTelegramMessage(
+              `Closed short at a loss on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
+            );
             changedPos = true;
           }
-        } else if (position.side === 'b') {
+        } else if (position.side === "b") {
           totalBuyExposure += position.quantity;
           if (position.pl > 10) {
-            logger('finance-profit', `CLOSING LONG POSITION ${JSON.stringify(position)}`);
+            logger(
+              "finance-profit",
+              `CLOSING LONG POSITION ${JSON.stringify(position)}`
+            );
             restClient.futuresCloseTrade(position.id);
             profitableBuys += 2;
-            sendTelegramMessage(`Closed profitable long on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`);
+            sendTelegramMessage(
+              `Closed profitable long on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
+            );
             changedPos = true;
           } else if (position.pl < -20) {
-            logger('error', `CLOSING LONG POSITION AT LOSS ${JSON.stringify(position)}`);
+            logger(
+              "error",
+              `CLOSING LONG POSITION AT LOSS ${JSON.stringify(position)}`
+            );
             restClient.futuresCloseTrade(position.id);
-            sendTelegramMessage(`Closed long at a loss on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`);
+            sendTelegramMessage(
+              `Closed long at a loss on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
+            );
             changedPos = true;
           }
         }
@@ -238,29 +305,32 @@ async function loadModules() {
         totalBuyExposure = 0;
         await sleep(1000);
         runningPositions = await restClient.futuresGetTrades({
-          "type": "running",
+          type: "running",
         });
-        runningPositions.forEach(position => {
-          if (position.side === 's') {
+        runningPositions.forEach((position) => {
+          if (position.side === "s") {
             totalSellExposure += position.quantity;
             sellPl += position.pl;
-          } else if (position.side === 'b') {
+          } else if (position.side === "b") {
             totalBuyExposure += position.quantity;
             buyPl += position.pl;
           }
         });
       }
-      logger('info', `Profitable sells: $${profitableSells} (exp $${totalSellExposure} pl ${sellPl} sats), profitable buys: $${profitableBuys} (exp $${totalBuyExposure} pl ${buyPl} sats)`);
+      logger(
+        "info",
+        `Profitable sells: $${profitableSells} (exp $${totalSellExposure} pl ${sellPl} sats), profitable buys: $${profitableBuys} (exp $${totalBuyExposure} pl ${buyPl} sats)`
+      );
       // logger('info', `Sell exposure: $${totalSellExposure}, Buy exposure: $${totalBuyExposure}, Position: $${totalBuyExposure-totalSellExposure}`);
     } catch (error) {
-      logger('error', `Fetching positions failed: ${JSON.stringify(error)}`);
+      logger("error", `Fetching positions failed: ${JSON.stringify(error)}`);
       logger(error.stack);
     }
     try {
-      let action = 'none';
-      let rsi = await fetchRSI('15m');
+      let action = "none";
+      let rsi = await fetchRSI("15m");
       await sleep(15000);
-      let bbands = await fetchBbands('15m');
+      let bbands = await fetchBbands("15m");
       await sleep(15000);
       // let ultosc = await fetchUltosc('15m');
       // await sleep(15000);
@@ -272,49 +342,74 @@ async function loadModules() {
       // logger('finance', `Ultosc: ${ultosc.value}`);
       if (rsiData.length >= period) {
         // Get moving average and print calculated thresholds
-        const movingAverageRSI = Number(calculateMovingAverage(rsiData, period));
-        logger('finance', `RSI_movAvg: ${movingAverageRSI}`);
-        logger('finance', `RSI_mBuy: ${movingAverageRSI-2}, RSI_mSell: ${movingAverageRSI+12}`);
-        adjustedSellRsiThreshold = movingAverageRSI+12;
-        adjustedBuyRsiThreshold = movingAverageRSI-2;
+        const movingAverageRSI = Number(
+          calculateMovingAverage(rsiData, period)
+        );
+        logger("finance", `RSI_movAvg: ${movingAverageRSI}`);
+        logger(
+          "finance",
+          `RSI_mBuy: ${movingAverageRSI - 2}, RSI_mSell: ${
+            movingAverageRSI + 12
+          }`
+        );
+        adjustedSellRsiThreshold = movingAverageRSI + 12;
+        adjustedBuyRsiThreshold = movingAverageRSI - 2;
       } else {
         return;
       }
-      logger('finance', `RSI: ${rsi.value}, Bands: ${bbands.valueLowerBand} / ${bbands.valueUpperBand}`);
-      logger('finance', `Price ${lastPrice}, Index price ${indexPrice}`);
+      logger(
+        "finance",
+        `RSI: ${rsi.value}, Bands: ${bbands.valueLowerBand} / ${bbands.valueUpperBand}`
+      );
+      logger("finance", `Price ${lastPrice}, Index price ${indexPrice}`);
       if (totalSellExposure > 19 || totalBuyExposure > 19) {
         // logger('info', 'Exposure on one side is greater than $9, returning early.');
         return;
       }
       let sellPriceThreshold = bbands.valueLowerBand * 1.03;
       let buyPriceThreshold = bbands.valueUpperBand * 0.9961;
-      logger('info', `Sell thresh $${sellPriceThreshold}, Buy thresh $${buyPriceThreshold}`);
+      logger(
+        "info",
+        `Sell thresh $${sellPriceThreshold}, Buy thresh $${buyPriceThreshold}`
+      );
       // Check for sell conditions
-      if (rsi.value >= adjustedSellRsiThreshold && lastPrice > sellPriceThreshold) {
-        action = 'sell';
-        logger('warn', `Condition met for selling: RSI is above ${adjustedSellRsiThreshold} and price is 3% higher than Bollinger Lower Band. Attempting to sell at ${lastPrice}.`);
+      if (
+        rsi.value >= adjustedSellRsiThreshold &&
+        lastPrice > sellPriceThreshold
+      ) {
+        action = "sell";
+        logger(
+          "warn",
+          `Condition met for selling: RSI is above ${adjustedSellRsiThreshold} and price is 3% higher than Bollinger Lower Band. Attempting to sell at ${lastPrice}.`
+        );
         await restClient.futuresNewTrade({
-          "side": "s",
-          "type": "m",
-          "leverage": 2,
-          "quantity": 2,
+          side: "s",
+          type: "m",
+          leverage: 2,
+          quantity: 2,
         });
         sendTelegramMessage(`Shorted on LNM at ${lastPrice}`);
-      } else if (rsi.value <= adjustedBuyRsiThreshold && lastPrice < buyPriceThreshold) {
-        action = 'buy';
-        logger('warn', `Condition met for buying: RSI is below ${adjustedBuyRsiThreshold} and price is 0.39% lower than Bollinger Higher Band. Attempting to buy at ${lastPrice}.`);
+      } else if (
+        rsi.value <= adjustedBuyRsiThreshold &&
+        lastPrice < buyPriceThreshold
+      ) {
+        action = "buy";
+        logger(
+          "warn",
+          `Condition met for buying: RSI is below ${adjustedBuyRsiThreshold} and price is 0.39% lower than Bollinger Higher Band. Attempting to buy at ${lastPrice}.`
+        );
         await restClient.futuresNewTrade({
-          "side": "b",
-          "type": "m",
-          "leverage": 2,
-          "quantity": 2,
+          side: "b",
+          type: "m",
+          leverage: 2,
+          quantity: 2,
         });
         sendTelegramMessage(`Longed on LNM at ${lastPrice}`);
       }
       // Update the timestamp of the last trade
       lastTradeTime = Date.now();
       if (action !== "none") {
-        logger('finance', `Trade action executed: ${action}`);
+        logger("finance", `Trade action executed: ${action}`);
       }
     } catch (error) {
       const errorLog = {
@@ -322,19 +417,25 @@ async function loadModules() {
         stack: error.stack,
         name: error.name,
       };
-      logger('error', `Trade execution failed: ${errorLog.message}`);
-      logger('error', errorLog.stack);
-      const errorDetails = JSON.stringify(error, Object.getOwnPropertyNames(error));
-      logger('error', `Error details: ${errorDetails}`);
+      logger("error", `Trade execution failed: ${errorLog.message}`);
+      logger("error", errorLog.stack);
+      const errorDetails = JSON.stringify(
+        error,
+        Object.getOwnPropertyNames(error)
+      );
+      logger("error", `Error details: ${errorDetails}`);
     }
   }
-  
+
   // WebSocket client for live data
   async function setupWebSocket() {
     try {
       const wsClient = await createWebsocketClient(apiConfig);
-      await wsClient.publicSubscribe(['futures:btc_usd:last-price', 'futures:btc_usd:index']);
-      wsClient.ws.on('futures:btc_usd:last-price', (data) => {
+      await wsClient.publicSubscribe([
+        "futures:btc_usd:last-price",
+        "futures:btc_usd:index",
+      ]);
+      wsClient.ws.on("futures:btc_usd:last-price", (data) => {
         // console.log(`Received data: ${JSON.stringify(data, null, 2)}`); // Log the entire data object
         if (data?.lastPrice !== undefined) {
           lastPrice = data.lastPrice;
@@ -344,10 +445,10 @@ async function loadModules() {
             lastTradeLogicCall = Date.now();
           }
         } else {
-          logger('error', 'Last price data is undefined in the received data');
+          logger("error", "Last price data is undefined in the received data");
         }
       });
-      wsClient.ws.on('futures:btc_usd:index', (data) => {
+      wsClient.ws.on("futures:btc_usd:index", (data) => {
         // console.log(`Received index data: ${JSON.stringify(data, null, 2)}`); // Log the entire data object
         if (data?.index !== undefined) {
           indexPrice = data.index;
@@ -356,24 +457,26 @@ async function loadModules() {
             lastTradeLogicCall = Date.now();
           }
         } else {
-          logger('error', 'Index price data is undefined in the received data');
+          logger("error", "Index price data is undefined in the received data");
         }
       });
-      wsClient.ws.on('open', () => retryCount = 0);
-      wsClient.ws.on('close', () => {
-        logger('info', 'WebSocket closed');
+      wsClient.ws.on("open", () => (retryCount = 0));
+      wsClient.ws.on("close", () => {
+        logger("info", "WebSocket closed");
         if (retryCount < maxRetries) {
-          let delay = Math.min(1000 * (2 ** retryCount), 30000);
-          logger('info', 'Reconnecting websocket');
+          let delay = Math.min(1000 * 2 ** retryCount, 30000);
+          logger("info", "Reconnecting websocket");
           setTimeout(setupWebSocket, delay);
           retryCount++;
         } else {
-          logger('error', 'Max retries reached for reconnect');
+          logger("error", "Max retries reached for reconnect");
         }
       });
-      wsClient.ws.on('error', (error) => console.error(`WebSocket error: ${error.message}`));
+      wsClient.ws.on("error", (error) =>
+        console.error(`WebSocket error: ${error.message}`)
+      );
     } catch (error) {
-      logger('error', `WebSocket setup failed: ${error.message}`);
+      logger("error", `WebSocket setup failed: ${error.message}`);
     }
   }
   setupWebSocket();
