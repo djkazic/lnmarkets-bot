@@ -208,12 +208,12 @@ async function loadModules() {
             logger('finance-profit', `CLOSING SHORT POSITION ${JSON.stringify(position)}`);
             restClient.futuresCloseTrade(position.id);
             profitableSells += 2;
-            sendTelegramMessage(`Closed profitable short on LNM: ${JSON.stringify(position)}`);
+            sendTelegramMessage(`Closed profitable short on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`);
             changedPos = true;
           } else if (position.pl < -20) {
             logger('error', `CLOSING SHORT POSITION AT LOSS ${JSON.stringify(position)}`);
             restClient.futuresCloseTrade(position.id);
-            sendTelegramMessage(`Closed short at a loss on LNM: ${JSON.stringify(position)}`);
+            sendTelegramMessage(`Closed short at a loss on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`);
             changedPos = true;
           }
         } else if (position.side === 'b') {
@@ -222,12 +222,12 @@ async function loadModules() {
             logger('finance-profit', `CLOSING LONG POSITION ${JSON.stringify(position)}`);
             restClient.futuresCloseTrade(position.id);
             profitableBuys += 2;
-            sendTelegramMessage(`Closed profitable long on LNM: ${JSON.stringify(position)}`);
+            sendTelegramMessage(`Closed profitable long on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`);
             changedPos = true;
           } else if (position.pl < -20) {
             logger('error', `CLOSING LONG POSITION AT LOSS ${JSON.stringify(position)}`);
             restClient.futuresCloseTrade(position.id);
-            sendTelegramMessage(`Closed long at a loss on LNM: ${JSON.stringify(position)}`);
+            sendTelegramMessage(`Closed long at a loss on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`);
             changedPos = true;
           }
         }
@@ -274,9 +274,11 @@ async function loadModules() {
         // Get moving average and print calculated thresholds
         const movingAverageRSI = Number(calculateMovingAverage(rsiData, period));
         logger('finance', `RSI_movAvg: ${movingAverageRSI}`);
-        logger('finance', `RSI_mBuy: ${movingAverageRSI-1}, RSI_mSell: ${movingAverageRSI+12}`);
+        logger('finance', `RSI_mBuy: ${movingAverageRSI-2}, RSI_mSell: ${movingAverageRSI+12}`);
         adjustedSellRsiThreshold = movingAverageRSI+12;
-        adjustedBuyRsiThreshold = movingAverageRSI-1;
+        adjustedBuyRsiThreshold = movingAverageRSI-2;
+      } else {
+        return;
       }
       logger('finance', `RSI: ${rsi.value}, Bands: ${bbands.valueLowerBand} / ${bbands.valueUpperBand}`);
       logger('finance', `Price ${lastPrice}, Index price ${indexPrice}`);
@@ -316,17 +318,12 @@ async function loadModules() {
       }
     } catch (error) {
       const errorLog = {
-        message: error.message, // The error message
-        stack: error.stack, // The stack trace
-        name: error.name, // The name of the error
-        // Include other properties as needed
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
       };
-    
-      // Log the error details
       logger('error', `Trade execution failed: ${errorLog.message}`);
       logger('error', errorLog.stack);
-
-      // If you need to log the whole error object, you can use a custom replacer function with JSON.stringify
       const errorDetails = JSON.stringify(error, Object.getOwnPropertyNames(error));
       logger('error', `Error details: ${errorDetails}`);
     }
@@ -379,9 +376,7 @@ async function loadModules() {
       logger('error', `WebSocket setup failed: ${error.message}`);
     }
   }
-  // Initialize WebSocket connection
   setupWebSocket();
-  // Implement additional features like signal handling for graceful shutdowns, logging, monitoring, etc.
 }
 
 loadModules().catch(console.error);
