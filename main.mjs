@@ -252,7 +252,7 @@ async function loadModules() {
       runningPositions.forEach((position) => {
         if (position.side === "s") {
           totalSellExposure += position.quantity;
-          if (position.pl > 11) {
+          if (position.pl > 14) {
             logger(
               "finance-profit",
               `CLOSING SHORT POSITION ${JSON.stringify(position)}`
@@ -276,7 +276,7 @@ async function loadModules() {
           }
         } else if (position.side === "b") {
           totalBuyExposure += position.quantity;
-          if (position.pl > 11) {
+          if (position.pl > 14) {
             logger(
               "finance-profit",
               `CLOSING LONG POSITION ${JSON.stringify(position)}`
@@ -327,7 +327,7 @@ async function loadModules() {
       logger("error", `Fetching positions failed: ${JSON.stringify(error)}`);
       logger(error.stack);
     }
-    logger("info", `Last tick direction: ${lastTickDirection}`);
+    logger("info", `Last tick direction: ${lastTickDirection}, price ${lastPrice}`);
     try {
       let action = "none";
       let rsi = await fetchRSI("15m");
@@ -377,7 +377,8 @@ async function loadModules() {
       // Check for sell conditions
       if (
         rsi.value >= adjustedSellRsiThreshold &&
-        lastPrice > sellPriceThreshold
+        lastPrice > sellPriceThreshold &&
+        lastTickDirection === "PlusTick" || lastTickDirection === "ZeroPlusTick"
       ) {
         action = "sell";
         logger(
@@ -393,7 +394,8 @@ async function loadModules() {
         sendTelegramMessage(`Shorted on LNM at ${lastPrice}`);
       } else if (
         rsi.value <= adjustedBuyRsiThreshold &&
-        lastPrice < buyPriceThreshold
+        lastPrice < buyPriceThreshold &&
+        lastTickDirection === "MinusTick" || lastTickDirection === "ZeroMinusTick"
       ) {
         action = "buy";
         logger(
