@@ -251,7 +251,7 @@ async function loadModules() {
       runningPositions.forEach((position) => {
         if (position.side === "s") {
           totalSellExposure += position.quantity;
-          if (position.pl > 10) {
+          if (position.pl > 11) {
             logger(
               "finance-profit",
               `CLOSING SHORT POSITION ${JSON.stringify(position)}`
@@ -275,7 +275,7 @@ async function loadModules() {
           }
         } else if (position.side === "b") {
           totalBuyExposure += position.quantity;
-          if (position.pl > 10) {
+          if (position.pl > 11) {
             logger(
               "finance-profit",
               `CLOSING LONG POSITION ${JSON.stringify(position)}`
@@ -367,7 +367,7 @@ async function loadModules() {
         return;
       }
       let sellPriceThreshold = bbands.valueLowerBand * 1.03;
-      let buyPriceThreshold = bbands.valueUpperBand * 0.9961;
+      let buyPriceThreshold = bbands.valueUpperBand * 0.9960;
       logger(
         "info",
         `Sell thresh $${sellPriceThreshold}, Buy thresh $${buyPriceThreshold}`
@@ -396,7 +396,7 @@ async function loadModules() {
         action = "buy";
         logger(
           "warn",
-          `Condition met for buying: RSI is below ${adjustedBuyRsiThreshold} and price is 0.39% lower than Bollinger Higher Band. Attempting to buy at ${lastPrice}.`
+          `Condition met for buying: RSI is below ${adjustedBuyRsiThreshold} and price is 0.40% lower than Bollinger Higher Band. Attempting to buy at ${lastPrice}.`
         );
         await restClient.futuresNewTrade({
           side: "b",
