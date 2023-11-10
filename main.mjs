@@ -83,6 +83,7 @@ async function loadModules() {
   let lastCalledTime = Date.now() - fetchInterval;
   let lastTradeLogicCall = 0;
   let rsiData = [];
+  let lastTickDirection = '';
   const period = 14;
   const tradeLogicCooldown = 60 * 1000;
 
@@ -326,6 +327,7 @@ async function loadModules() {
       logger("error", `Fetching positions failed: ${JSON.stringify(error)}`);
       logger(error.stack);
     }
+    logger("info", `Last tick direction: ${lastTickDirection}`);
     try {
       let action = "none";
       let rsi = await fetchRSI("15m");
@@ -429,16 +431,19 @@ async function loadModules() {
 
   // WebSocket client for live data
   async function setupWebSocket() {
+    logger("info", "Setting up websocket");
     try {
       const wsClient = await createWebsocketClient(apiConfig);
       await wsClient.publicSubscribe([
         "futures:btc_usd:last-price",
         "futures:btc_usd:index",
       ]);
+      logger("info", "Subscribed to websocket topics");
       wsClient.ws.on("futures:btc_usd:last-price", (data) => {
-        // console.log(`Received data: ${JSON.stringify(data, null, 2)}`); // Log the entire data object
+        // logger("info", `Received price data: ${JSON.stringify(data, null, 2)}`);
         if (data?.lastPrice !== undefined) {
           lastPrice = data.lastPrice;
+          lastTickDirection = data.lastTickDirection;
           // console.log(`Updated last price: ${lastPrice}`);
           if (shouldCallTradeLogic()) {
             tradeLogic();
@@ -449,7 +454,7 @@ async function loadModules() {
         }
       });
       wsClient.ws.on("futures:btc_usd:index", (data) => {
-        // console.log(`Received index data: ${JSON.stringify(data, null, 2)}`); // Log the entire data object
+        // logger("info", `Received index data: ${JSON.stringify(data, null, 2)}`);
         if (data?.index !== undefined) {
           indexPrice = data.index;
           if (shouldCallTradeLogic()) {
