@@ -350,12 +350,12 @@ async function loadModules() {
         logger("finance", `RSI_movAvg: ${movingAverageRSI}`);
         logger(
           "finance",
-          `RSI_mBuy: ${movingAverageRSI - 2}, RSI_mSell: ${
+          `RSI_mBuy: ${movingAverageRSI - 4}, RSI_mSell: ${
             movingAverageRSI + 12
           }`
         );
         adjustedSellRsiThreshold = movingAverageRSI + 12;
-        adjustedBuyRsiThreshold = movingAverageRSI - 2;
+        adjustedBuyRsiThreshold = movingAverageRSI - 4;
       } else {
         return;
       }
@@ -378,34 +378,34 @@ async function loadModules() {
       if (
         rsi.value >= adjustedSellRsiThreshold &&
         lastPrice > sellPriceThreshold &&
-        lastTickDirection === "PlusTick" || lastTickDirection === "ZeroPlusTick"
+        (lastTickDirection === "PlusTick" || lastTickDirection === "ZeroPlusTick")
       ) {
         action = "sell";
         logger(
           "warn",
-          `Condition met for selling: RSI is above ${adjustedSellRsiThreshold} and price is 3% higher than Bollinger Lower Band. Attempting to sell at ${lastPrice}.`
+          `Condition met for selling: RSI ${rsi.value} is above ${adjustedSellRsiThreshold} and price is 3% higher than Bollinger Lower Band. Attempting to sell at ${lastPrice}.`
         );
         await restClient.futuresNewTrade({
           side: "s",
           type: "m",
-          leverage: 2,
+          leverage: 1,
           quantity: 2,
         });
         sendTelegramMessage(`Shorted on LNM at ${lastPrice}`);
       } else if (
         rsi.value <= adjustedBuyRsiThreshold &&
         lastPrice < buyPriceThreshold &&
-        lastTickDirection === "MinusTick" || lastTickDirection === "ZeroMinusTick"
+        (lastTickDirection === "MinusTick" || lastTickDirection === "ZeroMinusTick")
       ) {
         action = "buy";
         logger(
           "warn",
-          `Condition met for buying: RSI is below ${adjustedBuyRsiThreshold} and price is 0.40% lower than Bollinger Higher Band. Attempting to buy at ${lastPrice}.`
+          `Condition met for buying: RSI ${rsi.value} is below ${adjustedBuyRsiThreshold} and price is 0.40% lower than Bollinger Higher Band. Attempting to buy at ${lastPrice}.`
         );
         await restClient.futuresNewTrade({
           side: "b",
           type: "m",
-          leverage: 2,
+          leverage: 1,
           quantity: 2,
         });
         sendTelegramMessage(`Longed on LNM at ${lastPrice}`);
