@@ -350,12 +350,12 @@ async function loadModules() {
         logger("finance", `RSI_movAvg: ${movingAverageRSI}`);
         logger(
           "finance",
-          `RSI_mBuy: ${movingAverageRSI - 4}, RSI_mSell: ${
+          `RSI_mBuy: ${movingAverageRSI - 3}, RSI_mSell: ${
             movingAverageRSI + 12
           }`
         );
         adjustedSellRsiThreshold = movingAverageRSI + 12;
-        adjustedBuyRsiThreshold = movingAverageRSI - 4;
+        adjustedBuyRsiThreshold = movingAverageRSI - 3;
       } else {
         return;
       }
@@ -377,8 +377,7 @@ async function loadModules() {
       // Check for sell conditions
       if (
         rsi.value >= adjustedSellRsiThreshold &&
-        lastPrice > sellPriceThreshold &&
-        (lastTickDirection === "PlusTick" || lastTickDirection === "ZeroPlusTick")
+        lastPrice > sellPriceThreshold
       ) {
         action = "sell";
         logger(
@@ -394,8 +393,7 @@ async function loadModules() {
         sendTelegramMessage(`Shorted on LNM at ${lastPrice}`);
       } else if (
         rsi.value <= adjustedBuyRsiThreshold &&
-        lastPrice < buyPriceThreshold &&
-        (lastTickDirection === "MinusTick" || lastTickDirection === "ZeroMinusTick")
+        lastPrice < buyPriceThreshold
       ) {
         action = "buy";
         logger(
