@@ -84,7 +84,7 @@ async function loadModules() {
   let lastTradeLogicCall = 0;
   let rsiData = [];
   let lastTickDirection = '';
-  const period = 14;
+  const period = 15;
   const tradeLogicCooldown = 60 * 1000;
 
   const canMakeTrade = () => Date.now() - lastTradeTime > 1000;
@@ -110,7 +110,7 @@ async function loadModules() {
   }
 
   function addRsiSample(sample) {
-    if (rsiData.length > 14) {
+    if (rsiData.length > 15) {
       // Remove the oldest sample to make room for the new one
       rsiData.shift();
     }
@@ -350,12 +350,12 @@ async function loadModules() {
         logger("finance", `RSI_movAvg: ${movingAverageRSI}`);
         logger(
           "finance",
-          `RSI_mBuy: ${movingAverageRSI - 3}, RSI_mSell: ${
-            movingAverageRSI + 12
+          `RSI_mBuy: ${movingAverageRSI - 2}, RSI_mSell: ${
+            movingAverageRSI + 10
           }`
         );
-        adjustedSellRsiThreshold = movingAverageRSI + 12;
-        adjustedBuyRsiThreshold = movingAverageRSI - 3;
+        adjustedSellRsiThreshold = movingAverageRSI + 10;
+        adjustedBuyRsiThreshold = movingAverageRSI - 2;
       } else {
         return;
       }
