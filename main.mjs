@@ -84,6 +84,8 @@ async function loadModules() {
   let lastTradeLogicCall = 0;
   let rsiData = [];
   let lastTickDirection = '';
+  let minusTickCounter = 0;
+  let plusTickDetected = false;
   const period = 15;
   const tradeLogicCooldown = 60 * 1000;
 
@@ -258,7 +260,7 @@ async function loadModules() {
               `CLOSING SHORT POSITION ${JSON.stringify(position)}`
             );
             restClient.futuresCloseTrade(position.id);
-            profitableSells += 2;
+            profitableSells += position.quantity;
             sendTelegramMessage(
               `Closed profitable short on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
             );
@@ -282,7 +284,7 @@ async function loadModules() {
               `CLOSING LONG POSITION ${JSON.stringify(position)}`
             );
             restClient.futuresCloseTrade(position.id);
-            profitableBuys += 2;
+            profitableBuys += position.quantity;
             sendTelegramMessage(
               `Closed profitable long on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
             );
@@ -301,23 +303,25 @@ async function loadModules() {
         }
       });
       // Reread positions
-      if (changedPos) {
-        totalSellExposure = 0;
-        totalBuyExposure = 0;
-        await sleep(1000);
-        runningPositions = await restClient.futuresGetTrades({
-          type: "running",
-        });
-        runningPositions.forEach((position) => {
-          if (position.side === "s") {
-            totalSellExposure += position.quantity;
-            sellPl += position.pl;
-          } else if (position.side === "b") {
-            totalBuyExposure += position.quantity;
-            buyPl += position.pl;
-          }
-        });
-      }
+      // if (changedPos) {
+      totalSellExposure = 0;
+      totalBuyExposure = 0;
+      await sleep(1000);
+      runningPositions = await restClient.futuresGetTrades({
+        type: "running",
+      });
+      runningPositions.forEach((position) => {
+        if (position.side === "s") {
+          totalSellExposure += position.quantity;
+          logger("info", `Short position with pl ${position.pl}`);
+          sellPl += position.pl;
+        } else if (position.side === "b") {
+          totalBuyExposure += position.quantity;
+          logger("info", `Long position with pl ${position.pl}`);
+          buyPl += position.pl;
+        }
+      });
+      // }
       logger(
         "info",
         `Profitable sells: $${profitableSells} (exp $${totalSellExposure} pl ${sellPl} sats), profitable buys: $${profitableBuys} (exp $${totalBuyExposure} pl ${buyPl} sats)`
@@ -328,6 +332,17 @@ async function loadModules() {
       logger(error.stack);
     }
     logger("info", `Last tick direction: ${lastTickDirection}, price ${lastPrice}`);
+    if (lastTickDirection) {
+      if (lastTickDirection === 'MinusTick') {
+        minusTickCounter++;
+        plusTickDetected = false;
+      } else if (lastTickDirection === 'PlusTick') {
+        if (minusTickCounter >= 5) {
+          plusTickDetected = true;
+        }
+        minusTickCounter = 0;
+      }
+    }
     try {
       let action = "none";
       let rsi = await fetchRSI("15m");
@@ -347,14 +362,13 @@ async function loadModules() {
         const movingAverageRSI = Number(
           calculateMovingAverage(rsiData, period)
         );
-        logger("finance", `RSI_movAvg: ${movingAverageRSI}`);
         logger(
           "finance",
-          `RSI_mBuy: ${movingAverageRSI}, RSI_mSell: ${
-            movingAverageRSI + 5
+          `RSI_movAvg: ${movingAverageRSI}, RSI_mBuy: ${movingAverageRSI}, RSI_mSell: ${
+            movingAverageRSI + 4
           }`
         );
-        adjustedSellRsiThreshold = movingAverageRSI + 5;
+        adjustedSellRsiThreshold = movingAverageRSI + 4;
         adjustedBuyRsiThreshold = movingAverageRSI;
       } else {
         return;
@@ -392,8 +406,9 @@ async function loadModules() {
         });
         sendTelegramMessage(`Shorted on LNM at ${lastPrice}`);
       } else if (
-        rsi.value <= adjustedBuyRsiThreshold &&
-        lastPrice < buyPriceThreshold
+        plusTickDetected ||
+        (rsi.value <= adjustedBuyRsiThreshold &&
+        lastPrice < buyPriceThreshold)
       ) {
         action = "buy";
         logger(
