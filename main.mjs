@@ -254,7 +254,7 @@ async function loadModules() {
       runningPositions.forEach((position) => {
         if (position.side === "s") {
           totalSellExposure += position.quantity;
-          if (position.pl > 20) {
+          if (position.pl > 30) {
             logger(
               "finance-profit",
               `CLOSING SHORT POSITION ${JSON.stringify(position)}`
@@ -278,7 +278,7 @@ async function loadModules() {
           }
         } else if (position.side === "b") {
           totalBuyExposure += position.quantity;
-          if (position.pl > 20) {
+          if (position.pl > 30) {
             logger(
               "finance-profit",
               `CLOSING LONG POSITION ${JSON.stringify(position)}`
@@ -365,10 +365,10 @@ async function loadModules() {
         logger(
           "finance",
           `RSI_movAvg: ${movingAverageRSI}, RSI_mBuy: ${movingAverageRSI}, RSI_mSell: ${
-            movingAverageRSI + 4
+            movingAverageRSI + 2
           }`
         );
-        adjustedSellRsiThreshold = movingAverageRSI + 4;
+        adjustedSellRsiThreshold = movingAverageRSI + 2;
         adjustedBuyRsiThreshold = movingAverageRSI;
       } else {
         return;
