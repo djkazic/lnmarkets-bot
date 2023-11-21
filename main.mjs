@@ -238,6 +238,7 @@ async function loadModules() {
     if (lastPrice === null || indexPrice === null) {
       return;
     }
+    let sellBypass = false;
     // Fetch positions
     let totalSellExposure = 0;
     let totalBuyExposure = 0;
@@ -326,6 +327,10 @@ async function loadModules() {
         "info",
         `Profitable sells: $${profitableSells} (exp $${totalSellExposure} pl ${sellPl} sats), profitable buys: $${profitableBuys} (exp $${totalBuyExposure} pl ${buyPl} sats)`
       );
+      if (buyPl >= 70) {
+        logger("info", "Triggered synthetic exit");
+        sellBypass = true;
+      }
       // logger('info', `Sell exposure: $${totalSellExposure}, Buy exposure: $${totalBuyExposure}, Position: $${totalBuyExposure-totalSellExposure}`);
     } catch (error) {
       logger("error", `Fetching positions failed: ${JSON.stringify(error)}`);
@@ -390,14 +395,19 @@ async function loadModules() {
       );
       // Check for sell conditions
       if (
-        rsi.value >= adjustedSellRsiThreshold &&
-        lastPrice > sellPriceThreshold
+        sellBypass ||
+        (rsi.value >= adjustedSellRsiThreshold &&
+        lastPrice > sellPriceThreshold)
       ) {
         action = "sell";
-        logger(
-          "warn",
-          `Condition met for selling: RSI ${rsi.value} is above ${adjustedSellRsiThreshold} and price is 3% higher than Bollinger Lower Band. Attempting to sell at ${lastPrice}.`
-        );
+        if (sellBypass) {
+          logger("warn", "Condition met for selling: synthetic exit");
+        } else {
+          logger(
+            "warn",
+            `Condition met for selling: RSI ${rsi.value} is above ${adjustedSellRsiThreshold} and price is 3% higher than Bollinger Lower Band. Attempting to sell at ${lastPrice}.`
+          );
+        }
         await restClient.futuresNewTrade({
           side: "s",
           type: "m",
