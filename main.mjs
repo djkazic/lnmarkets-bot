@@ -369,12 +369,12 @@ async function loadModules() {
         );
         logger(
           "finance",
-          `RSI_movAvg: ${movingAverageRSI}, RSI_mBuy: ${movingAverageRSI}, RSI_mSell: ${
-            movingAverageRSI + 2
+          `RSI_movAvg: ${movingAverageRSI}, RSI_mBuy: ${movingAverageRSI - 3}, RSI_mSell: ${
+            movingAverageRSI + 3
           }`
         );
-        adjustedSellRsiThreshold = movingAverageRSI + 2;
-        adjustedBuyRsiThreshold = movingAverageRSI;
+        adjustedSellRsiThreshold = movingAverageRSI + 3;
+        adjustedBuyRsiThreshold = movingAverageRSI - 3;
       } else {
         return;
       }
