@@ -328,8 +328,8 @@ async function loadModules() {
         `Profitable sells: $${profitableSells} (exp $${totalSellExposure} pl ${sellPl} sats), profitable buys: $${profitableBuys} (exp $${totalBuyExposure} pl ${buyPl} sats)`
       );
       if (buyPl >= 70) {
-        logger("info", "Triggered synthetic exit");
-        sellBypass = true;
+        logger("info", "[DRY-RUN] triggered synthetic exit");
+        //sellBypass = true;
       }
       // logger('info', `Sell exposure: $${totalSellExposure}, Buy exposure: $${totalBuyExposure}, Position: $${totalBuyExposure-totalSellExposure}`);
     } catch (error) {
