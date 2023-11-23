@@ -266,7 +266,7 @@ async function loadModules() {
               `Closed profitable short on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
             );
             changedPos = true;
-          } else if (position.pl < -19) {
+          } else if (position.pl < -20) {
             logger(
               "error",
               `CLOSING SHORT POSITION AT LOSS ${JSON.stringify(position)}`
@@ -290,7 +290,7 @@ async function loadModules() {
               `Closed profitable long on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
             );
             changedPos = true;
-          } else if (position.pl < -19) {
+          } else if (position.pl < -20) {
             logger(
               "error",
               `CLOSING LONG POSITION AT LOSS ${JSON.stringify(position)}`
