@@ -252,8 +252,14 @@ async function loadModules() {
       let sellPl = 0;
       let buyPl = 0;
       let changedPos = false;
+      let buyOrders = 0;
+      let sellOrders = 0;
+      let buyAvgPl = 0;
+      let sellAvgPl = 0;
       runningPositions.forEach((position) => {
         if (position.side === "s") {
+          sellOrders++;
+          sellPl += position.pl;
           totalSellExposure += position.quantity;
           if (position.pl > 30) {
             logger(
@@ -278,6 +284,8 @@ async function loadModules() {
             changedPos = true;
           }
         } else if (position.side === "b") {
+          buyOrders++;
+          buyPl += position.pl;
           totalBuyExposure += position.quantity;
           if (position.pl > 30) {
             logger(
@@ -303,6 +311,13 @@ async function loadModules() {
           }
         }
       });
+      if (buyOrders > 0) {
+        buyAvgPl = buyPl / buyOrders;
+      }
+      if (sellOrders > 0) {
+        sellAvgPl = sellPl / sellOrders;
+      }
+      logger("info", `BuyAvgPl: ${buyAvgPl}, SellAvgPl: ${sellAvgPl}`);
       // Reread positions
       // if (changedPos) {
       totalSellExposure = 0;
@@ -314,12 +329,31 @@ async function loadModules() {
       runningPositions.forEach((position) => {
         if (position.side === "s") {
           totalSellExposure += position.quantity;
-          logger("info", `Short position with pl ${position.pl}`);
-          sellPl += position.pl;
+          if (sellAvgPl > 0 && position.pl > sellAvgPl) {
+            logger(
+              "finance-profit",
+              `CLOSING SHORT POSITION ${JSON.stringify(position)}`
+            );
+            restClient.futuresCloseTrade(position.id);
+            sendTelegramMessage(
+              `Closed profitable short on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
+            );
+          } else {
+            logger("info", `Short position with pl ${position.pl}`);
+          }
         } else if (position.side === "b") {
           totalBuyExposure += position.quantity;
+          if (buyAvgPl > 0 && position.pl > buyAvgPl) {
+            logger(
+              "finance-profit",
+              `CLOSING LONG POSITION ${JSON.stringify(position)}`
+            );
+            restClient.futuresCloseTrade(position.id);
+            sendTelegramMessage(
+              `Closed profitable long on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
+            );
+          }
           logger("info", `Long position with pl ${position.pl}`);
-          buyPl += position.pl;
         }
       });
       // }
@@ -327,6 +361,7 @@ async function loadModules() {
         "info",
         `Profitable sells: $${profitableSells} (exp $${totalSellExposure} pl ${sellPl} sats), profitable buys: $${profitableBuys} (exp $${totalBuyExposure} pl ${buyPl} sats)`
       );
+      
       if (buyPl >= 70) {
         logger("info", "[DRY-RUN] triggered synthetic exit");
         //sellBypass = true;
