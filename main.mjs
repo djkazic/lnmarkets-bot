@@ -251,7 +251,6 @@ async function loadModules() {
       let profitableBuys = 0;
       let sellPl = 0;
       let buyPl = 0;
-      let changedPos = false;
       let buyOrders = 0;
       let sellOrders = 0;
       let buyAvgPl = 0;
@@ -271,8 +270,7 @@ async function loadModules() {
             sendTelegramMessage(
               `Closed profitable short on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
             );
-            changedPos = true;
-          } else if (position.pl < -20) {
+          } else if (position.pl < -10) {
             logger(
               "error",
               `CLOSING SHORT POSITION AT LOSS ${JSON.stringify(position)}`
@@ -281,7 +279,6 @@ async function loadModules() {
             sendTelegramMessage(
               `Closed short at a loss on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
             );
-            changedPos = true;
           }
         } else if (position.side === "b") {
           buyOrders++;
@@ -297,8 +294,7 @@ async function loadModules() {
             sendTelegramMessage(
               `Closed profitable long on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
             );
-            changedPos = true;
-          } else if (position.pl < -20) {
+          } else if (position.pl < -10) {
             logger(
               "error",
               `CLOSING LONG POSITION AT LOSS ${JSON.stringify(position)}`
@@ -307,19 +303,17 @@ async function loadModules() {
             sendTelegramMessage(
               `Closed long at a loss on LNM: fee ${position.opening_fee}, price ${position.price}, pl ${position.pl}`
             );
-            changedPos = true;
           }
         }
       });
-      if (buyOrders > 0) {
+      if (buyOrders > 2) {
         buyAvgPl = buyPl / buyOrders;
       }
-      if (sellOrders > 0) {
+      if (sellOrders > 2) {
         sellAvgPl = sellPl / sellOrders;
       }
       logger("info", `BuyAvgPl: ${buyAvgPl}, SellAvgPl: ${sellAvgPl}`);
       // Reread positions
-      // if (changedPos) {
       totalSellExposure = 0;
       totalBuyExposure = 0;
       await sleep(1000);
@@ -329,7 +323,7 @@ async function loadModules() {
       runningPositions.forEach((position) => {
         if (position.side === "s") {
           totalSellExposure += position.quantity;
-          if (sellAvgPl > 0 && position.pl > sellAvgPl) {
+          if (sellAvgPl > 5 && position.pl > sellAvgPl) {
             logger(
               "finance-profit",
               `CLOSING SHORT POSITION ${JSON.stringify(position)}`
@@ -343,7 +337,7 @@ async function loadModules() {
           }
         } else if (position.side === "b") {
           totalBuyExposure += position.quantity;
-          if (buyAvgPl > 0 && position.pl > buyAvgPl) {
+          if (buyAvgPl > 5 && position.pl > buyAvgPl) {
             logger(
               "finance-profit",
               `CLOSING LONG POSITION ${JSON.stringify(position)}`
